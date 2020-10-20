@@ -52,6 +52,7 @@ const Map: React.FC = () => {
   const handleRecordToggle = () => {
     setIsRecording(!isRecording)
   }
+  
 
   const handleAddCoordsClick = () => {
     if ( tempArea ) {
