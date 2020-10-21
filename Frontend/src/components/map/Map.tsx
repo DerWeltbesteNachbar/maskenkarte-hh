@@ -1,101 +1,96 @@
 import React, { useEffect } from 'react';
-import styled, { css } from 'styled-components';
 import GoogleMapReact from 'google-map-react';
-import * as api from "../../api/Api"
-import { 
-  Grid,
-  Button,
-  Typography,
-} from '@material-ui/core';
-import StartIcon from '@material-ui/icons/PlayArrowRounded';
-import StopIcon from '@material-ui/icons/StopRounded';
-import TheMap from '../theMap/TheMap'
 
-const StyledControllsContainer = styled(Grid)`
-  ${({ theme }) => css`
-    padding: ${theme.spacing(3,0)};
-  `}
-`;
+var CryptoJS = require("crypto-js");
 
-const StyledMapContainer = styled.div`
-  height: 75vh;
-`;
+interface TheMapProps {
+  readonly onCenterChanged: Function,
+  readonly polygons?: [[{ lat: number; lng: number }]],
+  readonly polyCount?: number,
+  readonly defaultCenter?: { lat: number; lng: number }
+  readonly apiKey: string
+}
 
-/*
-  Underlaying SQL
+const Pin = (props: any) => {
 
-  CREATE TABLE areas (
-    ID BIGINT NOT NULL AUTO_INCREMENT,
-    coords TEXT NOT NULL,
-    PRIMARY KEY (ID)
-  )
-  ENGINE=InnoDB; 
-*/
-
-const Map: React.FC = () => {
-  
-  const [areaIDs, setAreaIDs] = React.useState<number[]>([])  
-  const [isRecording, setIsRecording] = React.useState<boolean>(false)  
-  const [currCoords, setCurrCoords] = React.useState<{}>(0)  
-  const [tempArea, setTempArea] = React.useState<[{}]>()
-  const [tempAreaPolyCount, setTempAreaPolyCount] = React.useState<number>(0)
-
-  
-  useEffect(() => {
-    api.getAreas()
-  }, []);
-    
-  const onCenterChanged = (coords: {}) => {    
-    setCurrCoords(coords)
-  }
-
-  const handleRecordToggle = () => {
-    setIsRecording(!isRecording)
-  }
-  
-
-  const handleAddCoordsClick = () => {
-    if ( tempArea ) {
-      let _tempArea: [{}] = tempArea;
-      _tempArea.push(currCoords)
-      setTempArea(_tempArea)
-    } else {
-      setTempArea([currCoords])
-    }
-    setTempAreaPolyCount(tempAreaPolyCount+1)
+  const clickHandler = () => {
+    //props.handleSetActivePost(props.id);
   }
 
   return (
-    <Grid container spacing={0}>
+    <div onClick={clickHandler}>
+      123
+    </div>
+  )
+}
 
-      <Grid item xs={12}>
-        <StyledControllsContainer>
+const Map: React.FC<TheMapProps> = ({onCenterChanged, polygons, polyCount, defaultCenter, apiKey}) => {
 
-          <Button variant="outlined" color="primary" onClick={handleRecordToggle}>
-            Starte markierung
-            {isRecording 
-              ? <StopIcon></StopIcon>
-              : <StartIcon></StartIcon>
-            }
-          </Button>
-          {isRecording 
-            && <Button variant="outlined" color="primary" onClick={handleAddCoordsClick}>Hinzufügen</Button>
-          }
-          
-          {tempArea && tempArea.map((it) => {
-            return <div>{Object.values(it)[0] + ", " + Object.values(it)[1]}</div>
-          })}
+  const _DELAY_TIME_: number = 1
 
-        </StyledControllsContainer>
-      </Grid>
+  // refresh map in order to update the polygon data
+  const [isRefreshingMap, setIsRefreshingMap] = React.useState<boolean>(false)
+  
+  const refreshMap = async () => { setIsRefreshingMap(true); setTimeout(() => { setIsRefreshingMap(false); }, _DELAY_TIME_); };
+  
+  const onChange = (e: any) => {    
+    onCenterChanged(e["center"])
+  }
 
-      <Grid item xs={12}>
-        <StyledMapContainer>
-          <TheMap onCenterChanged={onCenterChanged} polygons={tempArea} polyCount={tempAreaPolyCount}></TheMap>
-        </StyledMapContainer>
-      </Grid>
-    </Grid>
-  );
+  useEffect(() => {
+    refreshMap();
+  }, [polyCount]);
+
+  const renderAreaInfo = () => {
+    return polygons?.map( (data: [{ lat: number; lng: number }], id: number) => {
+      let avgLat: number = 0
+      let avgLng: number = 0
+      data.forEach( (coords: { lat: number; lng: number }) => {
+        avgLat += coords.lat
+        avgLng += coords.lng
+      })
+      avgLat /= data.length;
+      avgLng /= data.length;
+      
+      return (
+        <Pin
+          lat={avgLat} 
+          lng={avgLng}/>          
+      )
+    });
+  }
+
+  return (
+    <>
+    {isRefreshingMap
+      ? "Loading..." 
+      : <GoogleMapReact      
+        bootstrapURLKeys={{ key: apiKey }}
+        center={defaultCenter ? defaultCenter : { lat: 0, lng: 0 }}
+        defaultZoom={15}
+        onChange={(e) => onChange(e)}
+        options={
+          {styles: [{"featureType": "water", "elementType": "geometry", "stylers": [{"color": "#e9e9e9"},{"lightness": 17}]},{"featureType": "landscape", "elementType": "geometry", "stylers": [{"color": "#f5f5f5"},{"lightness": 20}]},{"featureType": "road.highway", "elementType": "geometry.fill", "stylers": [{"color": "#ffffff"},{"lightness": 17}]},{"featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{"color": "#ffffff"},{"lightness": 29},{"weight": 0.2}]},{"featureType": "road.arterial", "elementType": "geometry", "stylers": [{"color": "#ffffff"},{"lightness": 18}]},{"featureType": "road.local", "elementType": "geometry", "stylers": [{"color": "#ffffff"},{"lightness": 16}]},{"featureType": "poi", "elementType": "geometry", "stylers": [{"color": "#f5f5f5"},{"lightness": 21}]},{"featureType": "poi.park", "elementType": "geometry", "stylers": [{"color": "#dedede"},{"lightness": 21}]},{"elementType": "labels.text.stroke", "stylers": [{"visibility": "on"},{"color": "#ffffff"},{"lightness": 16}]},{"elementType": "labels.text.fill", "stylers": [{"saturation": 36},{"color": "#333333"},{"lightness": 40}]},{"elementType": "labels.icon", "stylers": [{"visibility": "off"}]},{"featureType": "transit", "elementType": "geometry", "stylers": [{"color": "#f2f2f2"},{"lightness": 19}]},{"featureType": "administrative", "elementType": "geometry.fill", "stylers": [{"color": "#fefefe"},{"lightness": 20}]},{"featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{"color": "#fefefe"},{"lightness": 17},{"weight": 1.2}]}]}
+        }
+        yesIWantToUseGoogleMapApiInternals={true}
+        onGoogleApiLoaded={ ({ map, maps }) => {
+          polygons && polygons.forEach( (coords, i) => {
+            new maps.Polygon({
+              paths: coords,
+              strokeColor: "#E66A73",
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              fillColor: "#FCEDEE",
+              fillOpacity: 0.35,
+              map
+            })
+          })
+        }}>
+        {polygons && renderAreaInfo()}
+      </GoogleMapReact>
+    }
+    </>
+  )
 }
 
 export default Map;

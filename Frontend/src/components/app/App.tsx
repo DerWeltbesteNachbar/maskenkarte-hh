@@ -1,5 +1,5 @@
 import React from 'react';
-import Map from '../map/Map';
+import Overview from '../overview/Overview';
 
 import { ThemeProvider } from 'styled-components';
 import {
@@ -13,7 +13,7 @@ function App() {
   return (
     <MuiThemeProvider theme={myTheme}>
       <ThemeProvider theme={myTheme}>
-        <Map></Map>
+        <Overview></Overview>
       </ThemeProvider>
     </MuiThemeProvider>
   );
