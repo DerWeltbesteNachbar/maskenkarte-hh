@@ -1,8 +1,10 @@
 import axios from "axios";
 
-const apiPath = "http://localhost:8888/maskenkarte-hh/Services/api.php";
+const apiPath = "https://dev.borchert.design/maskenkarte-hh/Services/api.php";
 const apiCoordsPath = `${apiPath}/records/areas`;
-const apiGMapsAPIPath = `${apiPath}/records/gmkey`;
+const apiTimeRestrictionPath = `${apiPath}/records/time_restriction`;
+
+// Read
 
 export const getAreas = () =>
   axios
@@ -16,21 +18,47 @@ export const getCoords = (areaID: number) =>
     .then((response) => ({response, error: undefined}))
     .catch((error) => ({response: undefined, error}));
 
-export const getMapsAPIKey = () =>
+export const getTimeRestriction = (areaID: number) =>
   axios
-    .get(`${apiGMapsAPIPath}`)
+    .get(`${apiTimeRestrictionPath}?filter=areaID,eq,${areaID}`)
     .then((response) => ({response, error: undefined}))
     .catch((error) => ({response: undefined, error}));
-    
-export const saveArea = (coords: [{ lat: number; lng: number }]) => {
+
+// Create
+
+export const saveTimeRestriction = (
+  data: any,
+  areaID: number) => 
   axios
-    .post(`${apiCoordsPath}`, {
-      coords: JSON.stringify(coords)
-    })
-    .then(function (response) {
-      console.log("Area successfully saved.")
-    })
-    .catch(function (error) {
-      console.log("Error saving area: ", error.response);
-    });
-}
+    .post(`${apiTimeRestrictionPath}`, { 
+      data: JSON.stringify(data),
+      areaID: areaID
+     })
+    .then((response) => ({response, error: undefined}))
+    .catch((error) => ({response: undefined, error}));
+
+export const saveArea = (coords: [{ lat: number; lng: number }]) =>
+  axios
+    .post(`${apiCoordsPath}`, { coords: JSON.stringify(coords) })
+    .then((response) => ({response, error: undefined}))
+    .catch((error) => ({response: undefined, error}));
+
+/*
+Underlaying SQL
+
+CREATE TABLE areas (
+  ID BIGINT NOT NULL AUTO_INCREMENT,
+  coords TEXT NOT NULL,
+  PRIMARY KEY (ID)
+)
+ENGINE=InnoDB; 
+
+CREATE TABLE time_restriction (
+  ID BIGINT NOT NULL AUTO_INCREMENT,
+  data JSON NOT NULL,
+  areaID BIGINT,
+  PRIMARY KEY (ID),
+  FOREIGN KEY (areaID) REFERENCES areas(ID)
+)
+ENGINE=InnoDB;
+*/
